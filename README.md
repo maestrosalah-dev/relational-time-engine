@@ -39,15 +39,11 @@ RTE execution:
 
 Relational activation density:
 
-$$
-\rho = \frac{\text{activated\_layers}}{\text{total\_layers}}
-$$
+rho = activated_layers / total_layers
 
 Energy saving proxy:
 
-$$
-\Delta = 1 - \rho
-$$
+Delta = 1 - rho
 
 
 ---
