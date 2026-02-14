@@ -40,12 +40,9 @@ RTE execution:
 
 Relational activation density:
 
-\\\[
-
-\\rho = \\frac{\\text{activated layers}}{\\text{total layers}}
-
-\\]
-
+```math
+\rho = \frac{\text{activated layers}}{\text{total layers}}
+\Delta = 1 - \rho
 
 
 Energy saving proxy:
@@ -227,11 +224,7 @@ rte/
 └── docs/
 
 
-Quickstart
-python -m examples.synthetic_stream
-python benchmarks/run_benchmark.py
-python -m benchmarks.run_transformer_benchmark
-python benchmarks/compare_benchmarks.py
+
 ---
 
 
