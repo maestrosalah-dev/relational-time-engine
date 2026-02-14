@@ -37,22 +37,17 @@ RTE execution:
 > Compute only when structurally necessary.
 
 
-
 Relational activation density:
 
-```math
-\rho = \frac{\text{activated layers}}{\text{total layers}}
-\Delta = 1 - \rho
-
+$$
+\rho = \frac{\text{activated\_layers}}{\text{total\_layers}}
+$$
 
 Energy saving proxy:
 
-\\\[
-
-\\Delta = 1 - \\rho
-
-\\]
-
+$$
+\Delta = 1 - \rho
+$$
 
 
 ---
