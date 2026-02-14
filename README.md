@@ -227,7 +227,11 @@ rte/
 └── docs/
 
 
-
+Quickstart
+python -m examples.synthetic_stream
+python benchmarks/run_benchmark.py
+python -m benchmarks.run_transformer_benchmark
+python benchmarks/compare_benchmarks.py
 ---
 
 
