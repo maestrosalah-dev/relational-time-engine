@@ -32,4 +32,5 @@ Thumbs.db
 *.pth
 
 # Benchmark outputs (optional – remove if you want results tracked)
-# benchmarks/results/*.csv
+benchmarks/results/*.csv
+benchmarks/results/*.png
