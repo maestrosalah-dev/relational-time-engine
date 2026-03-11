@@ -1,8 +1,6 @@
 
 # Relational Time Engine (RTE)
 ### Runtime Density Regulation for Efficient Transformer Inference
-# Relational Time Engine (RTE)
-
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18644899.svg)](https://doi.org/10.5281/zenodo.18644899)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
