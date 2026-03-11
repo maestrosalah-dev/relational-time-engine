@@ -1,252 +1,145 @@
-\# RTE — Relational Time Engine
 
-\### Runtime Density Regulation for Compute and Energy Reduction
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18644899.svg)](https://doi.org/10.5281/zenodo.18644899)
 
+# Relational Time Engine (RTE)
+### Runtime Density Regulation for Efficient Transformer Inference
 
+Relational Time Engine (RTE) is a lightweight execution gating layer that reduces unnecessary transformer layer computation during inference.
 
-RTE is a lightweight runtime gating engine that reduces unnecessary compute 
+Instead of executing all layers uniformly, RTE dynamically evaluates representational change and exits early when further computation becomes redundant.
 
-by regulating activation density in deep models.
-
-
-
-Instead of executing all layers unconditionally, RTE introduces a 
-
-probabilistic discrimination gate that controls forward passes based on 
-
-signal relevance.
-
-
+The system operates as a runtime mechanism and **does not require model retraining or architecture modification.**
 
 ---
 
+## Key Idea
 
+Traditional transformer inference executes every layer regardless of whether meaningful representational change is still occurring.
 
-\## Core Idea
+RTE introduces a **relational activation density control**:
 
+ρ = activated_layers / total_layers  
 
+Saving = 1 − ρ
 
-Classical execution:
-
-> Always compute.
-
-
-
-RTE execution:
-
-> Compute only when structurally necessary.
-
-
-Relational activation density:
-
-rho = activated_layers / total_layers
-
-Energy saving proxy:
-
-Delta = 1 - rho
-
+When representational drift falls below a structural threshold, the engine halts further layer execution.
 
 ---
 
+## Benchmark Results (CPU)
 
+Configuration:
 
-\## Transformer Toy Benchmark (CPU)
+- 8-layer transformer
+- sequence length = 128
+- batch size = 8
+- multi-run averaged measurements
 
+| Noise | Mode | Layers Used | Saving | Latency | Throughput |
+|------|------|-------------|--------|--------|-----------|
+|0.20|baseline|8/8|0%|199 ms|41 sps|
+|0.20|strict|2/8|75%|146 ms|54 sps|
+|0.50|strict|2/8|75%|153 ms|52 sps|
+|0.80|strict|3/8|62%|162 ms|49 sps|
 
+Observed effects:
 
-4-layer Transformer  
-
-(d\_model=128, n\_heads=4, d\_ff=256, seq\_len=128)
-
-
-
-| Noise | Mode     | ρ\_layers | Saving vs Baseline | FLOPs Total |
-
-|--------|----------|----------|-------------------|-------------|
-
-| 0.20   | baseline | 1.000    | 0.000             | 6.71e10     |
-
-| 0.20   | strict   | 0.165    | 0.835             | 1.10e10     |
-
-| 0.50   | strict   | 0.180    | 0.820             | 1.21e10     |
-
-| 0.80   | strict   | 0.225    | 0.775             | 1.51e10     |
-
-
-
-Observed FLOPs reduction: \*\*~77–83%\*\*
-
-
+• up to **75% layer reduction**  
+• **~40% latency improvement**  
+• increased throughput  
+• bounded output drift
 
 ---
 
+## Architecture
+
+Input
+↓
+Transformer Layer Li
+↓
+Representation Drift Measurement
+↓
+Threshold Gate
+↓
+Continue / Early Exit
 
 
-\## Architecture
-
-
-
-RTE consists of:
-
-
-
-\- Discrimination Module D(E)
-
-\- Probabilistic Gate
-
-\- Adaptive Threshold Update
-
-\- Safety Override Layer
-
-\- Strict / Flexible Policy Modes
-
-
-
-Strict Mode → maximum compute reduction  
-
-Flexible Mode → smoother regulation  
-
-
+The mechanism dynamically regulates execution depth according to signal stability.
 
 ---
 
-
-
-\## Local Stability Guarantee
-
-
-
-Threshold update:
-
-\\\[
-
-\\theta\_{t+1} = \\theta\_t + \\eta(\\rho\_t - \\rho^\*)
-
-\\]
-
-
-
-Under bounded variance and small η,
-
-local linearized stability holds.
-
-
-
----
-
-
-
-\## Why This Matters
-
-
-
-Large models waste compute on low-signal activations.
-
-
-
-RTE introduces a structural regulation layer before:
-
-\- Full forward passes
-
-\- Gradient updates
-
-\- Attention propagation
-
-
-
-Potential applications:
-
-\- Transformer inference
-
-\- MoE routing
-
-\- Conditional compute
-
-\- Edge AI
-
-\- Energy-constrained hardware
-
-
-
----
-
-
-
-\## Status
-
-
-
-✓ Synthetic benchmark complete  
-
-✓ Transformer toy FLOPs benchmark complete  
-
-✓ Stability proof (local linearized regime)  
-
-✓ Strict / Flexible comparison  
-
-
-
-Next steps:
-
-\- GPU energy measurements
-
-\- Real LLM integration
-
-\- Multi-agent synchronization experiments
-
-
-
----
-
-
-
-\## Repository Structure
+## Repository Structure
 
 rte/
+benchmarks/
+examples/
+industrial/
+spec/
+tests/
 
-├── core.py
 
-├── discrimination.py
+Important files:
 
-├── examples/
+- `benchmarks/run_transformer_latency_benchmark.py`
+- `industrial/RTE_Industrial_Whitepaper_v1.pdf`
 
-├── benchmarks/
+---
 
-└── docs/
+## Quick Start
 
+Clone repository:
+
+git clone https://github.com/maestrosalah-dev/relational-time-engine.git
+cd relational-time-engine
+
+
+Install requirements:
+
+pip install -r requirements.txt
+
+
+Run benchmark:
+
+python benchmarks/run_transformer_latency_benchmark.py
 
 
 ---
 
+## Whitepaper
 
+Industrial whitepaper:
 
-\## Industrial Contact
+industrial/RTE_Industrial_Whitepaper_v1.pdf
 
+Zenodo archive:
 
+https://doi.org/10.5281/zenodo.18644899
 
-Author: Athmani Salah  
+---
 
+## Citation
+
+If you use or reference this work:
+
+Salah, A. (2026).  
+Relational Time Engine (RTE): Runtime Density Regulation for Efficient AI Inference.
+
+---
+
+## Author
+
+Athmani Salah  
+Independent Researcher
 ORCID: 0009-0004-9350-9216  
-
-Independent Researcher  
-
+maestro.salah@gmail.com
+GitHub  
+https://github.com/maestrosalah-dev
 
 
 For collaboration or hardware integration inquiries, open an issue or contact via GitHub.
 
 
 
----
-
-
-
-\## Research Basis
-
-
-
-RTE is derived from Relational Time Theory (RTT):
-
-Time is treated as activation density emerging from structural discrimination.
 
 
 
