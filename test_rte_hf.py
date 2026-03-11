@@ -1,5 +1,5 @@
 from transformers import AutoTokenizer, AutoModel
-from rte import RTEGate
+from rte_engine import RTEGate
 import torch
 
 model_name = "distilbert-base-uncased"
