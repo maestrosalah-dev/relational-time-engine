@@ -1,5 +1,6 @@
 import torch
 from transformers.modeling_outputs import BaseModelOutput
+from transformers.models.distilbert.modeling_distilbert import create_bidirectional_mask
 
 
 class DistilBERTRTEGate:
@@ -13,72 +14,76 @@ class DistilBERTRTEGate:
         if not hasattr(model, "transformer") or not hasattr(model.transformer, "layer"):
             raise ValueError("This wrapper currently supports DistilBERT-like models only.")
 
+        embeddings = model.embeddings
         transformer = model.transformer
         layers = transformer.layer
-        embeddings = model.embeddings
-
+        config = model.config
         gate = self
 
         def gated_forward(
             input_ids=None,
             attention_mask=None,
-            head_mask=None,
             inputs_embeds=None,
-            output_attentions=False,
-            output_hidden_states=True,
+            position_ids=None,
             return_dict=True,
             **kwargs,
         ):
-            if input_ids is not None and inputs_embeds is not None:
-                raise ValueError("You cannot specify both input_ids and inputs_embeds at the same time.")
+            # Match HF validation logic
+            if (input_ids is None) == (inputs_embeds is None):
+                raise ValueError("You must specify exactly one of input_ids or inputs_embeds")
 
-            if input_ids is not None:
-                input_shape = input_ids.size()
-            elif inputs_embeds is not None:
-                input_shape = inputs_embeds.size()[:-1]
-            else:
-                raise ValueError("You have to specify either input_ids or inputs_embeds.")
+            # 1) Build embeddings exactly like DistilBertModel.forward
+            hidden_states = embeddings(input_ids, inputs_embeds, position_ids)
 
-            device = input_ids.device if input_ids is not None else inputs_embeds.device
+            # 2) Build the proper bidirectional mask
+            attention_mask_prepared = create_bidirectional_mask(
+                config=config,
+                inputs_embeds=hidden_states,
+                attention_mask=attention_mask,
+            )
 
-            if attention_mask is None:
-                attention_mask = torch.ones(input_shape, device=device)
-
-            hidden_state = embeddings(input_ids=input_ids, input_embeds=inputs_embeds)
-
-            all_hidden_states = [hidden_state]
+            # 3) Early-exit loop
+            all_hidden_states = [hidden_states]
             executed_layers = 0
+            drifts = []
 
-            prev = hidden_state
+            prev = hidden_states
 
-            for i, layer_module in enumerate(layers):
-                layer_outputs = layer_module(
-                    hidden_state,
-                    attn_mask=attention_mask,
-                    head_mask=head_mask[i] if head_mask is not None else None,
-                    output_attentions=output_attentions,
+            for layer_module in layers:
+                hidden_states = layer_module(
+                    hidden_states,
+                    attention_mask=attention_mask_prepared,
+                    **kwargs,
                 )
 
-                hidden_state = layer_outputs[-1]
                 executed_layers += 1
-                all_hidden_states.append(hidden_state)
+                all_hidden_states.append(hidden_states)
 
-                d = gate.drift(prev, hidden_state)
+                d = gate.drift(prev, hidden_states)
+                drifts.append(float(d.detach().cpu()))
 
                 if d < gate.threshold:
                     break
 
-                prev = hidden_state
+                prev = hidden_states
 
-            if not return_dict:
-                return (hidden_state, tuple(all_hidden_states), executed_layers)
-
-            out = BaseModelOutput(
-                last_hidden_state=hidden_state,
+            outputs = BaseModelOutput(
+                last_hidden_state=hidden_states,
                 hidden_states=tuple(all_hidden_states),
                 attentions=None,
             )
-            return out, executed_layers
+
+            # لا نحاول حقن خصائص داخل BaseModelOutput مباشرة
+            meta = {
+                "executed_layers": executed_layers,
+                "drifts": drifts,
+                "rho_layers": executed_layers / len(layers),
+            }
+
+            if return_dict:
+                return outputs, meta
+
+            return (hidden_states, tuple(all_hidden_states), meta)
 
         model.forward = gated_forward
         return model
