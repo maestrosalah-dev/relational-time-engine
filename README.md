@@ -1,8 +1,13 @@
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18644899.svg)](https://doi.org/10.5281/zenodo.18644899)
-
 # Relational Time Engine (RTE)
 ### Runtime Density Regulation for Efficient Transformer Inference
+# Relational Time Engine (RTE)
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18644899.svg)](https://doi.org/10.5281/zenodo.18644899)
+![License](https://img.shields.io/badge/license-Apache%202.0-blue)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![Status](https://img.shields.io/badge/status-research-green)
+
 
 Relational Time Engine (RTE) is a lightweight execution gating layer that reduces unnecessary transformer layer computation during inference.
 
@@ -24,6 +29,12 @@ Saving = 1 − ρ
 
 When representational drift falls below a structural threshold, the engine halts further layer execution.
 
+---
+## Research Context
+
+RTE is part of a broader research direction exploring relational execution dynamics and runtime density regulation in adaptive AI systems.
+
+The goal is to reduce unnecessary compute while preserving structural information flow in deep neural architectures.
 ---
 
 ## Benchmark Results (CPU)
@@ -65,6 +76,16 @@ Continue / Early Exit
 
 
 The mechanism dynamically regulates execution depth according to signal stability.
+Input
+  ↓
+Layer L1
+  ↓
+Representation Drift
+  ↓
+Threshold Gate
+  ↓
+Continue → L2
+Exit → Output
 
 ---
 
