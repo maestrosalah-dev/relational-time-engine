@@ -28,21 +28,29 @@ class DistilBERTRTEGate:
             return_dict=True,
             **kwargs,
         ):
-            # Match HF validation logic
             if (input_ids is None) == (inputs_embeds is None):
                 raise ValueError("You must specify exactly one of input_ids or inputs_embeds")
 
-            # 1) Build embeddings exactly like DistilBertModel.forward
+            if input_ids is not None:
+                input_shape = input_ids.size()
+                device = input_ids.device
+            else:
+                input_shape = inputs_embeds.size()[:-1]
+                device = inputs_embeds.device
+
+            if attention_mask is None:
+                attention_mask = torch.ones(input_shape, device=device)
+
             hidden_states = embeddings(input_ids, inputs_embeds, position_ids)
 
-            # 2) Build the proper bidirectional mask
+            # توافق مع نسختك من transformers:
+            # الدالة تتوقع غالبًا (config, hidden_states, attention_mask)
             attention_mask_prepared = create_bidirectional_mask(
-                config=config,
-                inputs_embeds=hidden_states,
-                attention_mask=attention_mask,
+                config,
+                hidden_states,
+                attention_mask,
             )
 
-            # 3) Early-exit loop
             all_hidden_states = [hidden_states]
             executed_layers = 0
             drifts = []
@@ -73,7 +81,6 @@ class DistilBERTRTEGate:
                 attentions=None,
             )
 
-            # لا نحاول حقن خصائص داخل BaseModelOutput مباشرة
             meta = {
                 "executed_layers": executed_layers,
                 "drifts": drifts,
