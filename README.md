@@ -58,6 +58,7 @@ Observed effects:
 • increased throughput  
 • bounded output drift
 
+On distilbert-base-uncased, the RTE early-exit wrapper reduced mean CPU latency from 29.89 ms to 17.89 ms, achieving a 1.67x speedup while preserving output dimensionality and maintaining bounded structural drift.
 ---
 
 ## Architecture
