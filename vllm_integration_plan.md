@@ -2,102 +2,151 @@
 
 ## Objective
 
-Integrate Relational Time Engine (RTE) as a runtime early-exit policy layer for decoder-based transformer inference in vLLM-style serving pipelines.
+Integrate Relational Time Engine (RTE) into a decoder-style LLM serving runtime as a block-level early-exit policy.
+
+The goal is to reduce executed decoder blocks during token generation while maintaining bounded structural drift.
 
 ---
 
-## Current Status
+## Current Evidence
 
-RTE currently supports:
+RTE has already been validated in three stages:
 
-- DistilBERT runtime early-exit
-- GPT-2 runtime early-exit
-- Drift-based exit policy abstraction (`DriftExitPolicy`)
-- CPU benchmark suites with latency / saving / drift outputs
+### 1. Synthetic / Toy Transformer Benchmarks
+- runtime density regulation
+- FLOPs proxy reduction
+- CPU latency savings
 
-This establishes feasibility across both encoder and causal decoder transformer families.
+### 2. Real HuggingFace Model Integration
+- DistilBERT early-exit wrapper
+- GPT-2 single-pass early-exit wrapper
 
----
+### 3. GPT-2 Generation-Step Benchmark
+- multi-step autoregressive decoding
+- substantial latency reduction per step
+- layer-saving behavior under threshold control
 
-## Why vLLM Matters
-
-vLLM is a widely used inference runtime for large language models.
-
-Integrating RTE into a vLLM-like environment would allow:
-
-- dynamic reduction of executed decoder blocks
-- lower latency
-- reduced GPU time per request
-- possible serving cost reduction
+This provides proof-of-feasibility across both encoder and decoder transformer families.
 
 ---
 
-## Integration Challenges
+## Why vLLM Is the Right Target
 
-### 1. Decoder Loop Awareness
-vLLM performs token-by-token decoding with KV cache reuse.
+vLLM is relevant because it provides:
 
-RTE must be adapted to:
-- work per decoding step
-- avoid breaking KV cache consistency
-- preserve causal generation semantics
+- practical decoder serving runtime
+- token-by-token generation execution
+- cache-aware inference
+- serving-oriented batching and scheduling
 
-### 2. Block-Level Exit Semantics
-In encoder models, exiting early is simpler.
+If RTE can be attached to a vLLM-like execution path, it moves from research prototype to serving infrastructure candidate.
 
-In causal decoder models, early exit must ensure:
-- valid hidden-state propagation
-- consistent block skipping
-- acceptable generation drift
+---
 
-### 3. Serving Runtime Constraints
-vLLM optimizes:
-- batching
-- scheduling
-- cache management
-- memory locality
+## Core Integration Concept
 
-RTE must integrate with minimal overhead.
+RTE does not need to replace the model.
+
+It acts as a runtime decision layer:
+
+1. observe hidden-state evolution across decoder blocks
+2. compute drift after each block
+3. decide whether remaining blocks are necessary
+4. exit early when structural change falls below threshold
+
+---
+
+## Key Technical Challenges
+
+### 1. KV Cache Compatibility
+A decoder runtime such as vLLM depends heavily on KV cache reuse.
+
+RTE must not break:
+- cache indexing
+- block consistency
+- token-step semantics
+
+### 2. Layer Exit Semantics
+Skipping later blocks must preserve:
+- hidden-state dimensional validity
+- output compatibility
+- stable generation behavior
+
+### 3. Runtime Overhead
+The policy evaluation itself must remain negligible relative to the saved block execution.
+
+### 4. Drift Calibration
+Thresholds may need to vary by:
+- model family
+- prompt length
+- generation step
+- serving regime
 
 ---
 
 ## Proposed Integration Path
 
-### Phase 1 — Policy Isolation
+### Phase 1 — Policy Abstraction
 Completed:
-- abstract drift policy
-- reusable wrapper interfaces
+- reusable `DriftExitPolicy`
+- reusable encoder/decoder wrappers
+- generation-step benchmark on GPT-2
 
-### Phase 2 — Decoder Runtime Prototype
+### Phase 2 — Mock Serving Runtime
 Next:
-- test RTE on GPT-2 generation-style forward passes
-- benchmark across prompt lengths and thresholds
+- build a decoder-step loop abstraction
+- evaluate executed blocks/token
+- log drift trajectories across generation steps
 
-### Phase 3 — Minimal vLLM-style Mock Runtime
-Build a mock decoder loop with:
-- iterative token steps
-- KV-like hidden state reuse
-- RTE block exit control
+### Phase 3 — vLLM Touchpoint Mapping
+Investigate:
+- decoder block loop entry points
+- scheduler interaction constraints
+- cache preservation boundaries
+- optional hook/plugin insertion
 
-### Phase 4 — vLLM Adapter Exploration
-Investigate integration points in:
-- decoder block execution loop
-- scheduling layer
-- optional plugin-style policy hooks
+### Phase 4 — Minimal Adapter Prototype
+Goal:
+- attach a no-op / diagnostic policy first
+- then attach drift-based exit policy
+- measure latency overhead vs saved compute
 
 ---
 
-## Required Metrics
+## Metrics Required Before True vLLM Integration
 
-For a valid vLLM-facing evaluation, we need:
+We need stable reporting for:
 
-- tokens/sec
-- latency/request
-- executed blocks/token
-- drift / generation deviation
-- cache correctness
+- latency per token
+- executed layers per token
+- mean rho
+- drift statistics
+- generated token consistency
 - overhead of policy evaluation
 
+---
+
+## Recommended Immediate Next Step
+
+Build a GPT-2 mock-serving benchmark that records per-token:
+- executed layers
+- drift
+- cumulative speedup
+- sequence growth behavior
+
+After that, produce a first adapter prototype for a decoder runtime boundary.
+
+---
+
+## Strategic Value
+
+If successful, RTE becomes more than a benchmark artifact.
+
+It becomes a candidate runtime control mechanism for:
+- efficient LLM serving
+- adaptive decoder computation
+- inference-cost reduction
+- hardware-aware scheduling
 ---
 
 ## Immediate Next Step
