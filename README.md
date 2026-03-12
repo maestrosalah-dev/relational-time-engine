@@ -163,6 +163,19 @@ RTE was integrated into `gpt2` as a causal decoder early-exit controller and eva
 | 1.25 | 61.30 ms | 5.89 ms | 10.68x | 91.7% | 1.024 |
 
 A practical operating point is `threshold = 1.00`, which provides strong acceleration while keeping drift lower than the more aggressive configuration.
+## GPT-2 Generation-Step Benchmark
+
+RTE was also evaluated in a multi-step autoregressive decoding setting using `gpt2`.
+
+### Threshold summary
+
+| Threshold | Baseline Latency/Step | RTE Latency/Step | Speedup | Saving | Drift |
+|-----------|------------------------|------------------|---------|--------|-------|
+| 0.75 | 67.74 ms | 17.90 ms | 3.84x | 83.3% | 0.803 |
+| 1.00 | 64.26 ms | 17.92 ms | 3.61x | 83.3% | 0.803 |
+| 1.25 | 49.68 ms | 10.63 ms | 4.69x | 91.7% | 1.081 |
+
+A practical operating point is `threshold = 0.75`, which provides strong generation-time acceleration while remaining more conservative than the most aggressive configuration.
 ---
 
 ## Whitepaper
@@ -203,6 +216,17 @@ Across the benchmark suite, RTE achieved the following threshold-level averages:
 A balanced operating point was observed at `threshold = 1.00`, where RTE maintained strong acceleration while avoiding the higher drift of the most aggressive setting.
 
 These results suggest that runtime layer gating can extend beyond encoder models and operate effectively on decoder-style transformer architectures relevant to LLM serving.
+## GPT-2 Autoregressive Generation Benchmark
+
+To move closer to realistic LLM serving conditions, RTE was evaluated in a multi-step autoregressive decoding scenario using `gpt2`.
+
+Across generation steps, RTE maintained substantial acceleration:
+
+- threshold `0.75`: `3.84x` speedup with `83.3%` saving
+- threshold `1.00`: `3.61x` speedup with `83.3%` saving
+- threshold `1.25`: `4.69x` speedup with `91.7%` saving
+
+These results suggest that runtime drift-based early exit can remain effective beyond single-pass inference and may extend to token-by-token decoding workloads relevant to LLM serving systems.
 ---
 
 ## Citation
