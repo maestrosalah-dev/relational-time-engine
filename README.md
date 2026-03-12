@@ -150,6 +150,19 @@ RTE was integrated as a runtime early-exit controller into `distilbert-base-unca
 - Drift (MAE proxy): `0.208`
 
 This result demonstrates that RTE can function as a real runtime gating mechanism on an actual HuggingFace model, not only on synthetic transformer benchmarks.
+## GPT-2 Runtime Early-Exit Benchmark Suite
+
+RTE was integrated into `gpt2` as a causal decoder early-exit controller and evaluated across multiple prompts and sequence lengths.
+
+### Threshold summary
+
+| Threshold | Baseline Latency | RTE Latency | Speedup | Saving | Drift |
+|-----------|------------------|-------------|---------|--------|-------|
+| 0.75 | 61.30 ms | 10.64 ms | 5.84x | 83.3% | 0.752 |
+| 1.00 | 61.30 ms | 9.11 ms | 7.69x | 85.6% | 0.819 |
+| 1.25 | 61.30 ms | 5.89 ms | 10.68x | 91.7% | 1.024 |
+
+A practical operating point is `threshold = 1.00`, which provides strong acceleration while keeping drift lower than the more aggressive configuration.
 ---
 
 ## Whitepaper
@@ -176,6 +189,20 @@ In the best observed CPU configuration:
 - bounded drift proxy (MAE) = `0.208`
 
 This experiment demonstrates that RTE can operate as a practical runtime controller inside a real HuggingFace transformer architecture, achieving measurable latency reduction without retraining or architectural redesign.
+
+## GPT-2 Runtime Integration
+
+To evaluate RTE on a causal decoder architecture, we integrated the gating mechanism into `gpt2` and ran a multi-prompt, multi-length benchmark suite.
+
+Across the benchmark suite, RTE achieved the following threshold-level averages:
+
+- threshold `0.75`: `5.84x` speedup with `83.3%` layer saving
+- threshold `1.00`: `7.69x` speedup with `85.6%` layer saving
+- threshold `1.25`: `10.68x` speedup with `91.7%` layer saving
+
+A balanced operating point was observed at `threshold = 1.00`, where RTE maintained strong acceleration while avoiding the higher drift of the most aggressive setting.
+
+These results suggest that runtime layer gating can extend beyond encoder models and operate effectively on decoder-style transformer architectures relevant to LLM serving.
 ---
 
 ## Citation
