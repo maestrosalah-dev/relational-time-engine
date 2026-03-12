@@ -2,9 +2,15 @@ import torch
 
 
 class DriftExitPolicy:
-    def __init__(self, threshold: float = 0.2, mode: str = "mean_abs"):
+    def __init__(
+        self,
+        threshold: float = 0.2,
+        mode: str = "mean_abs",
+        min_layers: int = 1,
+    ):
         self.threshold = threshold
         self.mode = mode
+        self.min_layers = min_layers
 
     def compute_drift(self, x_prev: torch.Tensor, x_next: torch.Tensor) -> torch.Tensor:
         if self.mode == "mean_abs":
