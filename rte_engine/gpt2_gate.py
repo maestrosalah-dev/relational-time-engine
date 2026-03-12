@@ -1,21 +1,17 @@
-import torch
 from transformers.modeling_outputs import BaseModelOutputWithPast
+from .policy import DriftExitPolicy
 
 
 class GPT2RTEGate:
-    def __init__(self, threshold=0.02):
-        self.threshold = threshold
-
-    def drift(self, x_prev, x_next):
-        return torch.mean(torch.abs(x_next - x_prev))
+    def __init__(self, threshold=0.02, policy: DriftExitPolicy | None = None):
+        self.policy = policy or DriftExitPolicy(threshold=threshold)
 
     def wrap(self, model):
-        # GPT2Model stores blocks directly on model.h
         if not hasattr(model, "h"):
             raise ValueError("This wrapper currently supports GPT2Model-like architectures only.")
 
         blocks = model.h
-        gate = self
+        policy = self.policy
 
         def gated_forward(
             input_ids=None,
@@ -33,7 +29,7 @@ class GPT2RTEGate:
                 hidden_states = inputs_embeds
 
             seq_len = hidden_states.size(1)
-            position_ids = torch.arange(
+            position_ids = __import__("torch").arange(
                 0, seq_len, device=hidden_states.device
             ).unsqueeze(0)
 
@@ -52,10 +48,10 @@ class GPT2RTEGate:
                 executed_layers += 1
                 all_hidden_states.append(hidden_states)
 
-                d = gate.drift(prev, hidden_states)
-                drifts.append(float(d.detach().cpu()))
+                should_exit, drift = policy.should_exit(prev, hidden_states)
+                drifts.append(float(drift.detach().cpu()))
 
-                if d < gate.threshold:
+                if should_exit:
                     break
 
                 prev = hidden_states
@@ -66,6 +62,8 @@ class GPT2RTEGate:
                 "executed_layers": executed_layers,
                 "rho_layers": executed_layers / len(blocks),
                 "drifts": drifts,
+                "policy_threshold": policy.threshold,
+                "policy_mode": policy.mode,
             }
 
             out = BaseModelOutputWithPast(
