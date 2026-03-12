@@ -10,11 +10,12 @@ class GPT2RTEGate:
         return torch.mean(torch.abs(x_next - x_prev))
 
     def wrap(self, model):
+        # GPT2Model stores blocks directly on model.h
+        if not hasattr(model, "h"):
+            raise ValueError("This wrapper currently supports GPT2Model-like architectures only.")
 
-        blocks = model.transformer.h
+        blocks = model.h
         gate = self
-
-        original_forward = model.forward
 
         def gated_forward(
             input_ids=None,
@@ -23,33 +24,33 @@ class GPT2RTEGate:
             return_dict=True,
             **kwargs,
         ):
-
-            transformer = model.transformer
+            if (input_ids is None) == (inputs_embeds is None):
+                raise ValueError("You must specify exactly one of input_ids or inputs_embeds.")
 
             if inputs_embeds is None:
-                hidden_states = transformer.wte(input_ids)
+                hidden_states = model.wte(input_ids)
             else:
                 hidden_states = inputs_embeds
 
+            seq_len = hidden_states.size(1)
             position_ids = torch.arange(
-                0, hidden_states.size(1),
-                device=hidden_states.device
+                0, seq_len, device=hidden_states.device
             ).unsqueeze(0)
 
-            hidden_states = hidden_states + transformer.wpe(position_ids)
+            hidden_states = hidden_states + model.wpe(position_ids)
 
             executed_layers = 0
             drifts = []
+            all_hidden_states = [hidden_states]
 
             prev = hidden_states
 
             for block in blocks:
-
                 outputs = block(hidden_states)
-
                 hidden_states = outputs[0]
 
                 executed_layers += 1
+                all_hidden_states.append(hidden_states)
 
                 d = gate.drift(prev, hidden_states)
                 drifts.append(float(d.detach().cpu()))
@@ -59,7 +60,7 @@ class GPT2RTEGate:
 
                 prev = hidden_states
 
-            hidden_states = transformer.ln_f(hidden_states)
+            hidden_states = model.ln_f(hidden_states)
 
             meta = {
                 "executed_layers": executed_layers,
@@ -67,14 +68,17 @@ class GPT2RTEGate:
                 "drifts": drifts,
             }
 
-            if return_dict:
+            out = BaseModelOutputWithPast(
+                last_hidden_state=hidden_states,
+                past_key_values=None,
+                hidden_states=tuple(all_hidden_states),
+                attentions=None,
+            )
 
-                return BaseModelOutputWithPast(
-                    last_hidden_state=hidden_states
-                ), meta
+            if return_dict:
+                return out, meta
 
             return hidden_states, meta
 
         model.forward = gated_forward
-
         return model
