@@ -1,24 +1,21 @@
 import torch
 from transformers.modeling_outputs import BaseModelOutput
 from transformers.models.distilbert.modeling_distilbert import create_bidirectional_mask
+from .policy import DriftExitPolicy
 
 
 class DistilBERTRTEGate:
-    def __init__(self, threshold: float = 0.01):
-        self.threshold = threshold
-
-    def drift(self, x_prev: torch.Tensor, x_next: torch.Tensor) -> torch.Tensor:
-        return torch.mean(torch.abs(x_next - x_prev))
+    def __init__(self, threshold: float = 0.01, policy: DriftExitPolicy | None = None):
+        self.policy = policy or DriftExitPolicy(threshold=threshold)
 
     def wrap(self, model):
         if not hasattr(model, "transformer") or not hasattr(model.transformer, "layer"):
             raise ValueError("This wrapper currently supports DistilBERT-like models only.")
 
         embeddings = model.embeddings
-        transformer = model.transformer
-        layers = transformer.layer
+        layers = model.transformer.layer
         config = model.config
-        gate = self
+        policy = self.policy
 
         def gated_forward(
             input_ids=None,
@@ -43,8 +40,6 @@ class DistilBERTRTEGate:
 
             hidden_states = embeddings(input_ids, inputs_embeds, position_ids)
 
-            # توافق مع نسختك من transformers:
-            # الدالة تتوقع غالبًا (config, hidden_states, attention_mask)
             attention_mask_prepared = create_bidirectional_mask(
                 config,
                 hidden_states,
@@ -67,10 +62,10 @@ class DistilBERTRTEGate:
                 executed_layers += 1
                 all_hidden_states.append(hidden_states)
 
-                d = gate.drift(prev, hidden_states)
-                drifts.append(float(d.detach().cpu()))
+                should_exit, drift = policy.should_exit(prev, hidden_states)
+                drifts.append(float(drift.detach().cpu()))
 
-                if d < gate.threshold:
+                if should_exit:
                     break
 
                 prev = hidden_states
@@ -85,6 +80,8 @@ class DistilBERTRTEGate:
                 "executed_layers": executed_layers,
                 "drifts": drifts,
                 "rho_layers": executed_layers / len(layers),
+                "policy_threshold": policy.threshold,
+                "policy_mode": policy.mode,
             }
 
             if return_dict:
