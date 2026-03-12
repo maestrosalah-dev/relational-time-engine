@@ -122,7 +122,19 @@ Run benchmark:
 
 python benchmarks/run_transformer_latency_benchmark.py
 
+## DistilBERT Early-Exit Benchmark
 
+Using `distilbert-base-uncased` on CPU, RTE achieved the following best result:
+
+- Threshold: `0.25`
+- Baseline latency: `27.64 ms`
+- RTE latency: `12.94 ms`
+- Speedup: `2.14x`
+- Executed layers: `3 / 6`
+- Saving: `50%`
+- Drift (MAE proxy): `0.208`
+
+This demonstrates that RTE can operate as a real runtime early-exit controller on an actual HuggingFace model.
 ---
 
 ## Whitepaper
@@ -134,7 +146,7 @@ industrial/RTE_Industrial_Whitepaper_v1.pdf
 Zenodo archive:
 
 https://doi.org/10.5281/zenodo.18644899
-
+On distilbert-base-uncased, RTE achieved a best observed CPU speedup of 2.14x at threshold 0.25, reducing executed layers from 6 to 3 while maintaining bounded drift (MAE ≈ 0.208).
 ---
 
 ## Citation
