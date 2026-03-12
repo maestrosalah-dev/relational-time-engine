@@ -135,6 +135,21 @@ Using `distilbert-base-uncased` on CPU, RTE achieved the following best result:
 - Drift (MAE proxy): `0.208`
 
 This demonstrates that RTE can operate as a real runtime early-exit controller on an actual HuggingFace model.
+## DistilBERT Early-Exit Benchmark
+
+RTE was integrated as a runtime early-exit controller into `distilbert-base-uncased` and evaluated on CPU.
+
+### Best observed result
+
+- Threshold: `0.25`
+- Baseline latency: `27.64 ms`
+- RTE latency: `12.94 ms`
+- Speedup: `2.14x`
+- Executed layers: `3 / 6`
+- Layer saving: `50%`
+- Drift (MAE proxy): `0.208`
+
+This result demonstrates that RTE can function as a real runtime gating mechanism on an actual HuggingFace model, not only on synthetic transformer benchmarks.
 ---
 
 ## Whitepaper
@@ -147,6 +162,20 @@ Zenodo archive:
 
 https://doi.org/10.5281/zenodo.18644899
 On distilbert-base-uncased, RTE achieved a best observed CPU speedup of 2.14x at threshold 0.25, reducing executed layers from 6 to 3 while maintaining bounded drift (MAE ≈ 0.208).
+## DistilBERT Runtime Integration
+
+To validate RTE beyond synthetic transformer benchmarks, we integrated the gating mechanism into `distilbert-base-uncased` and applied runtime early-exit based on representational drift thresholds.
+
+In the best observed CPU configuration:
+
+- baseline latency = `27.64 ms`
+- gated latency = `12.94 ms`
+- speedup = `2.14x`
+- executed layers reduced from `6` to `3`
+- effective layer saving = `50%`
+- bounded drift proxy (MAE) = `0.208`
+
+This experiment demonstrates that RTE can operate as a practical runtime controller inside a real HuggingFace transformer architecture, achieving measurable latency reduction without retraining or architectural redesign.
 ---
 
 ## Citation
