@@ -2,11 +2,6 @@ import torch
 
 
 class DriftExitPolicy:
-    """
-    Generic exit policy based on representational drift.
-    Can be reused across encoder and decoder architectures.
-    """
-
     def __init__(self, threshold: float = 0.2, mode: str = "mean_abs"):
         self.threshold = threshold
         self.mode = mode
